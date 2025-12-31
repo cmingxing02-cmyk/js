@@ -1,36 +1,49 @@
 var rule = {
-    title: 'PG影视',
-    host: 'https://pg.tp510k.top',
-    hostJs: '',
-    headers: {'User-Agent': 'MOBILE_UA'},
-
-    url: '/index.php/vod/type/id/fyclass/page/fypage.html',
-    searchUrl: '/index.php/vod/search/page/fypage/wd/**.html',
+    title: '修罗影视（下载源）',
+    host: 'https://xl01.com.de',
+    url: '/s/fyclass',
+    searchUrl: '/s/search?wd=**',
 
     searchable: 2,
     quickSearch: 1,
-    filterable: 1,
+    filterable: 0,
 
-    class_name: '电影&连续剧&综艺&动漫&短剧',
-    class_url: '1&2&3&4&41',
+    class_name: '最新电影&最新剧集&国产剧&港台剧&动漫&欧美剧&日韩剧',
+    class_url: 'all?type=0&all?type=1&guoju&gangtaiju&donghua?type=1&meiju&hanju',
 
-    limit: 24,
-    double: true,
-    推荐: '*',
+    // 一级：纯文本抓取（标题从a标签，备注从日期/评分）
+    一级: 'js:' +
+        'let html = request(input);' +
+        'let d = [];' +
+        'let lists = pdfa(html, "body && .list");' +  // 假设有.list或用正则
+        'pdfa(html, "a").forEach(a => {' +
+        '    let title = pdfh(a, "a&&Text");' +
+        '    if(title && a.attr("href").startsWith("/")) {' +
+        '        d.push({' +
+        '            title: title,' +
+        '            pic_url: "",' +  // 无图
+        '            desc: "下载资源",' +
+        '            url: "https://xl01.com.de" + a.attr("href"),' +
+        '            content: "磁力/迅雷下载"' +
+        '        });' +
+        '    }' +
+        '});' +
+        'setResult(d);',
 
-    // 一级列表：标题、海报、备注、链接
-    一级: '.module-item;.module-item-cover .module-item-pic img&&alt;.module-item-cover .module-item-pic img&&data-original;.module-item-text&&Text;a&&href',
+    // 二级：抓简介 + 下载链接
+    二级: 'js:' +
+        'let html = request(input);' +
+        'VOD = {};' +
+        'VOD.vod_name = pdfh(html, "h1&&Text") || "未知";' +
+        'VOD.vod_pic = "";  // 无图
+        'VOD.vod_content = pdfh(html, ".intro&&Text") || "无简介";' +
+        'VOD.vod_play_from = "磁力下载$迅雷下载";' +
+        'let mags = pdfa(html, "a[href^=magnet]");' +
+        'let eds = pdfa(html, "a[href^=ed2k]");' +
+        'let playUrl = mags.map(a => a.attr("href")).join("#") + "$" + eds.map(a => a.attr("href")).join("#");' +
+        'VOD.vod_play_url = playUrl || "无下载链接";',
 
-    // 二级详情页
-    二级: {
-        "title": ".video-info-header h1&&Text;.tag-link:eq(0)&&Text",  // 标题 + 年份
-        "img": ".module-item-pic img&&data-original",
-        "desc": ".video-info-items:eq(0)&&Text;.video-info-items:eq(1)&&Text;.video-info-items:eq(2)&&Text;.video-info-items:eq(3)&&Text;.video-info-items:eq(4)&&Text",
-        "content": ".sqjj_a&&Text",
-        "tabs": ".module-tab-item",
-        "lists": ".module-play-list:eq(#id)&&a"
-    },
-
-    // 搜索列表
-    搜索: '.module-search-item;.video-title&&Text;.module-item-pic img&&data-original;.video-serial&&Text;a&&href'
+    lazy: 'js:' +
+        'print("下载链接：" + input);' +  // 点播放显示链接，复制用下载器
+        'input = {parse:0, url: "", jx:0};'
 };
